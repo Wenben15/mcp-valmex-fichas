@@ -58,6 +58,89 @@ mcp.tool(
   }
 );
 
+
+
+
+mcp.tool(
+  "get_inventario_articulo",
+  {
+    articulo: z.string().min(1).describe("Código del artículo, ej. 10.002"),
+  },
+  async ({ articulo }) => {
+    const base = process.env.INVENTORY_BASE_URL;
+    const apiKey = process.env.INVENTORY_API_KEY;
+
+    if (!base || !apiKey) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify({ error: "Faltan INVENTORY_BASE_URL o INVENTORY_API_KEY" }) }],
+      };
+    }
+
+    let res;
+    try {
+      res = await fetch(base, {
+        headers: {
+          "x-api-key": apiKey,
+          "accept": "application/json",
+        },
+      });
+    } catch (err) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify({ error: "No se pudo conectar a la API", detail: String(err) }) }],
+      };
+    }
+
+    const raw = await res.text();
+
+    if (!res.ok) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify({ error: "HTTP error", status: res.status, body: raw }) }],
+      };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify({ error: "La API no devolvió JSON", body: raw }) }],
+      };
+    }
+
+    // Normalizamos a lista
+    const list = Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
+
+    // Filtramos por Articulo (exacto)
+    const found = list.find((x) => String(x.Articulo).trim() === String(articulo).trim());
+
+    if (!found) {
+      return {
+        content: [{ type: "text", text: JSON.stringify({ found: false, articulo }) }],
+      };
+    }
+
+    // Regresamos SOLO lo útil
+    const result = {
+      Articulo: found.Articulo,
+      Descripcion: found.Descripcion,
+      Marca: found.Marca,
+      Existencia_VALMEX: found.Existencia_VALMEX,
+      Existencia_Guadalajara: found.Existencia_Guadalajara,
+      Existencia_GRUPO: found.Existencia_GRUPO,
+      Existencia_VALMAIN: found.Existencia_VALMAIN,
+      Existencia_Total: found.Existencia_Total,
+    };
+
+    return {
+      content: [{ type: "text", text: JSON.stringify({ found: true, ...result }) }],
+    };
+  }
+);
+
 // ===============================
 // SSE plumbing (IMPORTANT)
 // ===============================
