@@ -46,6 +46,8 @@ mcp.tool(
     }
 
     const data = await res.json(); // {found, codigo, url}
+console.log("Inventario raw data:", JSON.stringify(data, null, 2));
+console.log("Articulo recibido:", articulo);
     return { content: [{ type: "text", text: JSON.stringify(data) }] };
   }
 );
@@ -88,6 +90,7 @@ mcp.tool(
     const row = Array.isArray(data)
       ? data.find((x) => String(x.Articulo) === String(articulo))
       : data;
+console.log("Resultado filtrado:", JSON.stringify(row, null, 2));
 
     if (!row) {
       return { content: [{ type: "text", text: JSON.stringify({ found: false, articulo }) }] };
