@@ -57,7 +57,7 @@ mcp.tool(
   "get_inventario",
   { articulo: z.string().min(1).describe("Artículo, ej. 10.002") },
   async ({ articulo }) => {
-    const url = `${INVENTORY_BASE_URL}/articulos/${encodeURIComponent(articulo)}`;
+    const url = `${INVENTORY_BASE_URL}/articulos`;
     const headers = { Accept: "application/json" };
 
     // Si la API requiere x-api-key, lo mandamos
