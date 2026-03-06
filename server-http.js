@@ -64,6 +64,8 @@ mcp.tool(
     if (INVENTORY_API_KEY) headers["x-api-key"] = INVENTORY_API_KEY;
 
     const res = await fetch(url, { headers });
+console.log("Inventory URL:", url);
+console.log("Inventory status:", res.status);
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -85,6 +87,9 @@ mcp.tool(
     }
 
     const data = await res.json();
+
+console.log("Inventario raw data:", JSON.stringify(data, null, 2));
+console.log("Articulo recibido:", articulo);
 
     // Si viene un arreglo, filtramos por Articulo = articulo
     const row = Array.isArray(data)
