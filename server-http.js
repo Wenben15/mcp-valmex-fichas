@@ -53,69 +53,64 @@ console.log("Articulo recibido:", articulo);
 );
 
 // Tool: inventario (por artículo)
+
 mcp.tool(
   "get_inventario",
-  { articulo: z.string().min(1).describe("Artículo, ej. 10.002") },
+  { articulo: z.string().min(1).describe("Articulo, ej. 10.100") },
   async ({ articulo }) => {
-    const url = `${INVENTORY_BASE_URL}/articulos`;
-    const headers = { Accept: "application/json" };
 
-    // Si la API requiere x-api-key, lo mandamos
-    if (INVENTORY_API_KEY) headers["x-api-key"] = INVENTORY_API_KEY;
+    const url = `${INVENTORY_BASE_URL}?tipo=articulo&q=${encodeURIComponent(articulo)}`;
+
+    const headers = {
+      "Accept": "application/json"
+    };
+
+    if (INVENTORY_API_KEY) {
+      headers["X-API-Key"] = INVENTORY_API_KEY;
+    }
 
     const res = await fetch(url, { headers });
-console.log("Inventory URL:", url);
-console.log("Inventory status:", res.status);
+
+    console.log("Inventory URL:", url);
+    console.log("Inventory status:", res.status);
 
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
+      const text = await res.text();
       return {
         isError: true,
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              ok: false,
-              status: res.status,
-              error: "Inventory API request failed",
-              response: text,
-              url,
-            }),
-          },
-        ],
+        content: [{ type: "text", text: `Inventory API error ${res.status}: ${text}` }]
       };
     }
 
-    const data = await res.json();
+    const json = await res.json();
 
-console.log("Inventario raw data:", JSON.stringify(data, null, 2));
-console.log("Articulo recibido:", articulo);
+    console.log("Inventario raw:", JSON.stringify(json, null, 2));
 
-    // Si viene un arreglo, filtramos por Articulo = articulo
-    const row = Array.isArray(data)
-      ? data.find((x) => String(x.Articulo) === String(articulo))
-      : data;
-console.log("Resultado filtrado:", JSON.stringify(row, null, 2));
-
-    if (!row) {
-      return { content: [{ type: "text", text: JSON.stringify({ found: false, articulo }) }] };
+    if (!json.ok || !json.data || json.data.length === 0) {
+      return {
+        content: [{ type: "text", text: JSON.stringify({ found: false, articulo }) }]
+      };
     }
 
-    // Regresamos solo lo útil
-    const result = {
-      Articulo: row.Articulo,
-      Descripcion: row.Descripcion,
-      Marca: row.Marca,
-      Existencia_VALMEX: row.Existencia_VALMEX,
-      Existencia_Guadalajara: row.Existencia_Guadalajara,
-      Existencia_GRUPO: row.Existencia_GRUPO,
-      Existencia_VALMAIN: row.Existencia_VALMAIN,
-      Existencia_Total: row.Existencia_Total,
+    const item = json.data[0];
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            articulo: item.articulo,
+            descripcion: item.descripcion,
+            existencia: item.existencia,
+            precio_publico: item.precio_publico
+          })
+        }
+      ]
     };
 
-    return { content: [{ type: "text", text: JSON.stringify({ found: true, ...result }) }] };
   }
 );
+
 
 // -------------------- SSE plumbing (MCP) --------------------
 // Guardamos transport por sessionId (memoria)
