@@ -106,7 +106,7 @@ app.all("/mcp", async (req, res) => {
   logMcpRequest(req);
 
   try {
-    await transport.handleRequest(req, res, req.body);
+    await transport.handleRequest(req, res);
   } catch (err) {
     console.error("MCP /mcp error:", err);
 
@@ -118,11 +118,3 @@ app.all("/mcp", async (req, res) => {
   }
 });
 
-// Root para validar deploy
-app.get("/", (_req, res) => {
-  res.status(200).send("OK MCP limpio");
-});
-
-app.listen(PORT, () => {
-  console.log(`MCP Valmex listo en puerto ${PORT}`);
-});
