@@ -1,35 +1,38 @@
 import express from "express";
-import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json());
 
-const PORT = Number(process.env.PORT || 10000);
-const HOST = "0.0.0.0";
+const PORT = process.env.PORT || 10000;
 
+/**
+ * Servidor MCP
+ */
 function createServer() {
   const server = new McpServer({
-    name: "valmex-mcp",
+    name: "test-mcp",
     version: "1.0.0",
   });
 
+  // 👇 TOOL ULTRA SIMPLE (sin schemas complejos)
   server.registerTool(
-    "buscar_articulo",
+    "test_tool",
     {
-      title: "Buscar articulo",
-      description: "Busca un articulo por codigo",
-      inputSchema: z.object({
-        codigo: z.string().min(1).describe("Codigo del articulo"),
-      }),
+      title: "Test tool",
+      description: "Tool de prueba",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
     },
-    async ({ codigo }) => {
+    async () => {
       return {
         content: [
           {
             type: "text",
-            text: `Busqueda simulada: ${codigo}`,
+            text: "ok",
           },
         ],
       };
@@ -39,16 +42,10 @@ function createServer() {
   return server;
 }
 
-app.all("/mcp", async (req, res) => {
-  console.log("MCP request", {
-    method: req.method,
-    path: req.path,
-    accept: req.headers.accept,
-    contentType: req.headers["content-type"],
-    protocolVersion: req.headers["mcp-protocol-version"],
-    body: req.body,
-  });
-
+/**
+ * Endpoint MCP
+ */
+app.post("/mcp", async (req, res) => {
   try {
     const server = createServer();
 
@@ -59,25 +56,16 @@ app.all("/mcp", async (req, res) => {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (err) {
-    console.error("MCP /mcp error full:", err);
-    console.error("MCP /mcp error stack:", err?.stack);
+    console.error("MCP ERROR MESSAGE:", err?.message);
+    console.error("MCP ERROR STACK:", err?.stack);
+    console.error("MCP ERROR FULL:", err);
 
     if (!res.headersSent) {
       res.status(500).json({
-        error: err instanceof Error ? err.message : "Unknown error",
-        stack: err?.stack ?? null,
+        error: err?.message || "Unknown error",
+        stack: err?.stack || null
       });
     }
   }
 });
-
-app.get("/", (_req, res) => {
-  res.status(200).send("OK MCP limpio");
-});
-
-app.listen(PORT, HOST, () => {
-  console.log(`MCP Valmex listo en ${HOST}:${PORT}`);
-});
-
-
 
