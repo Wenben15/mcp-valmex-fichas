@@ -1,0 +1,86 @@
+import { McpServer } from "@modelcontextprotocol/server";
+import { createMcpExpressApp } from "@modelcontextprotocol/express";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { z } from "zod";
+
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "0.0.0.0";
+
+const COTIZADOR_BASE_URL =
+  process.env.COTIZADOR_BASE_URL ||
+  "https://valvuleriamexicana.org/api/cotizador.php";
+
+function createServer() {
+  const server = new McpServer({
+    name: "valmex-fichas-mcp",
+    version: "1.0.0",
+  });
+
+  server.tool(
+    "buscar_articulo",
+    {
+      codigo: z.string().min(1).describe("Codigo del producto. Ejemplo: 10.100"),
+    },
+    async ({ codigo }) => {
+      try {
+        const url = new URL(COTIZADOR_BASE_URL);
+        url.searchParams.set("tipo", "articulo");
+        url.searchParams.set("q", codigo);
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          return {
+            structuredContent: {
+              ok: false,
+              codigo,
+              error: `HTTP ${res.status}`,
+            },
+            content: [
+              {
+                type: "text",
+                text: `Error consultando el articulo ${codigo}: HTTP ${res.status}.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const raw = await res.json();
+
+        if (!raw?.ok || !Array.isArray(raw.data) || raw.data.length === 0) {
+          return {
+            structuredContent: {
+              ok: false,
+              codigo,
+              found: false,
+              error: "Articulo no encontrado",
+            },
+            content: [
+              {
+                type: "text",
+                text: `No encontre informacion para el articulo ${codigo}.`,
+              },
+            ],
+            isError: false,
+          };
+        }
+
+        const item = raw.data[0];
+
+        const resultado = {
+          ok: true,
+          found: true,
+          artic
+              text:
+                `Articulo ${resultado.articulo}: ${resultado.descripcion}. ` +
+                `Existencia: ${resultado.existencia}. ` +
+                `Precio publico: ${resultado.precio_publico}.`,
+            },
+          
+ 
