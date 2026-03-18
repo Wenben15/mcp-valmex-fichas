@@ -89,8 +89,7 @@ const transport = new StreamableHTTPServerTransport({
 // Conecta el servidor MCP al transport una sola vez
 await mcp.connect(transport);
 
-// Log simple por request
-function logMcpRequest(req) {
+app.all("/mcp", async (req, res) => {
   console.log("MCP request", {
     method: req.method,
     path: req.path,
@@ -99,16 +98,12 @@ function logMcpRequest(req) {
     protocolVersion: req.headers["mcp-protocol-version"],
     body: req.body,
   });
-}
-
-// Endpoint MCP: GET y POST
-app.all("/mcp", async (req, res) => {
-  logMcpRequest(req);
 
   try {
-    await transport.handleRequest(req, res);
+    await transport.handleRequest(req, res, req.body);
   } catch (err) {
     console.error("MCP /mcp error:", err);
+    console.error("MCP /mcp error stack:", err?.stack);
 
     if (!res.headersSent) {
       res.status(500).json({
@@ -117,4 +112,5 @@ app.all("/mcp", async (req, res) => {
     }
   }
 });
+
 
