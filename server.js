@@ -1,5 +1,6 @@
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
 const app = express();
@@ -33,16 +34,19 @@ mcp.tool(
   }
 );
 
+const transport = new StreamableHTTPServerTransport();
+
 app.post("/mcp", async (req, res) => {
-  await mcp.handleRequest(req, res);
+  await transport.handleRequest(req, res);
 });
 
 app.get("/", (req, res) => {
-  res.send("OK MCP running");
+  res.send("OK MCP limpio");
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log("MCP Valmex listo");
+app.listen(PORT, async () => {
+  await mcp.connect(transport);
+  console.log("MCP listo sin sessionId");
 });
